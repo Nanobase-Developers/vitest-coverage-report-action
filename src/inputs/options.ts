@@ -6,8 +6,7 @@ import { type FileCoverageMode, getCoverageModeFrom } from "./FileCoverageMode";
 import { type CommentOn, getCommentOn } from "./getCommentOn";
 import { getCommitSHA } from "./getCommitSHA";
 import { getPullRequestNumber } from "./getPullRequestNumber";
-import { getViteConfigPath } from "./getViteConfigPath";
-import { parseCoverageThresholds } from "./parseCoverageThresholds";
+import { parseActionThresholds } from "./parseActionThresholds";
 
 type Options = {
 	fileCoverageMode: FileCoverageMode;
@@ -53,15 +52,8 @@ async function readOptions(octokit: Octokit): Promise<Options> {
 
 	const commentOn = getCommentOn();
 
-	// ViteConfig is optional, as it is only required for thresholds. If no vite config is provided, we will not include thresholds in the final report.
-	const viteConfigPath = await getViteConfigPath(
-		workingDirectory,
-		core.getInput("vite-config-path"),
-	);
-
-	const thresholds = viteConfigPath
-		? await parseCoverageThresholds(viteConfigPath)
-		: {};
+	// Parse thresholds from GitHub Action input parameters
+	const thresholds = parseActionThresholds();
 
 	const commitSHA = getCommitSHA();
 

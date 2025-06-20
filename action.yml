@@ -6,9 +6,18 @@ inputs:
       required: false
       description: 'A github access token with permissions to write to issues. Uses secrets.GITHUB_TOKEN by default.'
       default: ${{ github.token }}
-  vite-config-path:
+  threshold-lines:
       required: false
-      description: 'The path to the vite config file. By default, looks for paths by the pattern "vite[st].config.{t|mt|ct|j|mj|cj}s".'
+      description: 'Line coverage threshold (0-100). If not set, no line coverage threshold will be applied.'
+  threshold-statements:
+      required: false
+      description: 'Statement coverage threshold (0-100). If not set, no statement coverage threshold will be applied.'
+  threshold-functions:
+      required: false
+      description: 'Function coverage threshold (0-100). If not set, no function coverage threshold will be applied.'
+  threshold-branches:
+      required: false
+      description: 'Branch coverage threshold (0-100). If not set, no branch coverage threshold will be applied.'
   json-summary-path:
       required: false
       description: 'The path to the json summary file. Uses "coverage/coverage-summary.json" by default.'
