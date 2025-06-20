@@ -83,7 +83,10 @@ This action requires the `pull-requests: write` permission to add a comment to y
 | `json-summary-path`         | The path to the json summary file.                                                                                                                                                                                                                               | `${working-directory}/coverage/coverage-summary.json`                                                                                                                                                                                                              |
 | `json-final-path`           | The path to the json final file.                                                                                                                                                                                                                                 | `${working-directory}/coverage/coverage-final.json`                                                                                                                                                                                                                |
 | `json-summary-compare-path` | The path to the json summary file to compare against. If given, will display a trend indicator and the difference in the summary. Respects the `working-directory` option.                                                                                       | undefined                                                                                                                                                                                                                                                          |
-| `vite-config-path`          | The path to the vite config file. Will check the same paths as vite and vitest                                                                                                                                                                                   | Checks pattern `${working-directory}/vite[st].config.{t\|mt\|ct\|j\|mj\|cj}s`                                                                                                                   |
+| `threshold-lines`           | Line coverage threshold (0-100). If not set, no line coverage threshold will be applied.                                                                                                                                                                         | undefined                                                                                                                                                                                                                                                          |
+| `threshold-statements`      | Statement coverage threshold (0-100). If not set, no statement coverage threshold will be applied.                                                                                                                                                               | undefined                                                                                                                                                                                                                                                          |
+| `threshold-functions`       | Function coverage threshold (0-100). If not set, no function coverage threshold will be applied.                                                                                                                                                                 | undefined                                                                                                                                                                                                                                                          |
+| `threshold-branches`        | Branch coverage threshold (0-100). If not set, no branch coverage threshold will be applied.                                                                                                                                                                     | undefined                                                                                                                                                                                                                                                          |
 | `github-token`              | A GitHub access token with permissions to write to issues (defaults to `secrets.GITHUB_TOKEN`).                                                                                                                                                                  | `${{ github.token }}`                                                                                                                                                                                                                                              |
 | `file-coverage-mode`        | Defines how file-based coverage is reported. Possible values are `all`, `changes` or `none`.                                                                                                                                                                     | `changes`                                                                                                                                                                                                                                                          |
 | `file-coverage-root-path`   | The root (or absolute) part of the path used within the json coverage reports to point to the covered files. You can change this if your reports were generated in a different context (e.g., a docker container) and the absolute paths don't match the current runner's workspace. Uses the runner's workspace path by default. | `${{ github.workspace }}`                                                                                                                                                                                                                                          |
@@ -121,16 +124,85 @@ If your project includes multiple test suites and you want to consolidate their 
 
 ### Coverage Thresholds
 
+This action supports setting coverage thresholds to determine the status of the generated report. You can configure thresholds using individual input parameters for each coverage metric.
+
+#### Basic Usage
+
+You can set thresholds directly in your workflow using the new threshold input parameters:
+
+```yml
+- name: 'Report Coverage'
+  uses: davelosert/vitest-coverage-report-action@v2
+  with:
+    threshold-lines: 80
+    threshold-statements: 80
+    threshold-functions: 70
+    threshold-branches: 75
+```
+
+#### Available Threshold Parameters
+
+- `threshold-lines`: Line coverage threshold (0-100)
+- `threshold-statements`: Statement coverage threshold (0-100)
+- `threshold-functions`: Function coverage threshold (0-100)
+- `threshold-branches`: Branch coverage threshold (0-100)
+
+Each parameter is optional. If not specified, no threshold validation will be applied for that coverage metric.
+
+#### Examples
+
+**Complete threshold configuration:**
+
+```yml
+- name: 'Report Coverage'
+  uses: davelosert/vitest-coverage-report-action@v2
+  with:
+    threshold-lines: 80
+    threshold-statements: 85
+    threshold-functions: 75
+    threshold-branches: 70
+```
+
+**Partial threshold configuration:**
+
+```yml
+- name: 'Report Coverage'
+  uses: davelosert/vitest-coverage-report-action@v2
+  with:
+    threshold-lines: 90
+    threshold-statements: 90
+    # No function or branch thresholds - these won't be validated
+```
+
+**Basic threshold (same value for all metrics):**
+
+```yml
+- name: 'Report Coverage'
+  uses: davelosert/vitest-coverage-report-action@v2
+  with:
+    threshold-lines: 80
+    threshold-statements: 80
+    threshold-functions: 80
+    threshold-branches: 80
+```
+
+With threshold configuration, the report will show status indicators based on whether each metric meets its threshold:
+
+![Coverage Threshold Report](./docs/coverage-report-threshold.png)
+
+If no thresholds are defined, the status will display as '🔵'.
+
+#### Migration from Vite Configuration (BREAKING CHANGE)
+
 > [!WARNING]
-> Currently, this action does not import the vite-configuration, but parses it as string to extract the coverage-thresholds by an regexp. In other words: All thresholds need to be directly defined in the config-file given to this action through the vite-config-path input. E.g., when using workspace to extend a parent-configuration, the thresholds can not be defined in the parent-config.
+> **BREAKING CHANGE**: The `vite-config-path` option has been removed. Coverage thresholds are now configured using individual input parameters instead of being read from the Vite configuration file.
 
-This action reads the coverage thresholds specified in the `coverage` property of the Vite configuration file. It then uses these thresholds to determine the status of the generated report.
+If you were previously using coverage thresholds defined in your Vite configuration file:
 
-For instance, consider the following configuration:
+**Old approach (no longer supported):**
 
 ```typescript
-import { defineConfig } from 'vite';
-
+// vite.config.js
 export default defineConfig({
   test: {
     coverage: {
@@ -145,11 +217,33 @@ export default defineConfig({
 });
 ```
 
-With the above configuration, the report would appear as follows:
+```yml
+# Your workflow
+- uses: davelosert/vitest-coverage-report-action@v2
+  with:
+    vite-config-path: './vite.config.js'  # This option no longer exists
+```
 
-![Coverage Threshold Report](./docs/coverage-report-threshold.png)
+**New approach:**
 
-If no thresholds are defined, the status will display as '🔵'.
+```yml
+# Your workflow
+- uses: davelosert/vitest-coverage-report-action@v2
+  with:
+    threshold-lines: 60
+    threshold-statements: 60
+    threshold-functions: 60
+    threshold-branches: 60
+```
+
+#### Migration Benefits
+
+The new threshold configuration approach provides several advantages:
+
+- **Simplicity**: No need to parse Vite configuration files
+- **Flexibility**: Set thresholds independently of your test configuration
+- **Reliability**: Works consistently across different project setups including monorepos and workspaces
+- **Clarity**: Threshold values are clearly visible in your workflow configuration
 
 ### Coverage Trend Indicator
 
